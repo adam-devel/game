@@ -1,0 +1,25 @@
+// available turns in the game are X and O
+export type Turn = typeof X | typeof O;
+export const X = "X";
+export const O = "O";
+
+// turns are recorded on a board
+export type Board = (Turn|null)[][]
+
+// turns are played as a series of moves
+export type Move = {
+  line: number;
+  col: number;
+};
+
+// possible outcomes of a move are: Win, Tie, or Illigal
+export type Outcome = typeof Win | typeof Tie | typeof Illigal;
+export const Win = "Win";
+export const Tie = "Tie";
+export const Illigal = "Illigal";
+
+// when the game is over, the outcomes are: Win for X/O or Tie
+export type Gameover = 
+  | typeof X
+  | typeof O
+  | typeof Tie
