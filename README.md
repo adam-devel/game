@@ -1,44 +1,26 @@
-A monorepo for a multiplayer game.
+Building the foundation for a multiplayer game.
+Currently tictactoe will serve as a placeholder,
+once the foundation is solid, a different game will be implemented.
 
 # Packages
 
-| Package | Description |
-|---------|-------------|
-| `client`  | React Native (Expo) Android client with Skia rendering |
-| `server`  | Deno WebSocket server with game logic authority |
-| `bot`     | Deno headless client for testing |
-| `game`    | Shared game logic for client-side prediction (planned) |
-| `protocol`| Shared TypeScript types & msgpack utilities |
-| `shell`   | REPL/command shell for server and bot |
+- `@game/server`: The game server
+- `@game/client`: The Android client
+- `@game/bot`: A headless client for testing purposes
+- `@game/game`: The game logic
+- `@game/protocol`: Defines the structure of valid messages
+- `@game/shell`: A shell for interacting with the server and bot
 
-## Server
+# Overview
 
-```bash
-cd packages/server
-deno task start
-```
+A sequence of events is best suited to overview the project.   
 
-## Client (Android)
-
-```bash
-cd packages/client
-npx expo prebuild  # Generate android directory
-npm run android
-```
-
-## Bot
-
-```bash
-# Start server first
-cd packages/server && deno task start &
-
-# Run bot
-cd packages/bot
-deno task start
-```
-
-## Tech Stack
-
-- **Client**: React Native
-- **Server**: Deno + msgpack
-- **Protocol**: TypeScript + @msgpack/msgpack
+- @game/server listens for WebSocket connections
+- @game/client connects via WebSocket and sends a join message
+    - @game/client receives a "wait" message: waiting for an opponent
+    - or @game/client receives a "start" message: the game starts
+- @game/client initializes the game based on the received state
+- @game/server refuses further join messages, until the match ends
+- @game/client updates the game state and send a "move" the user played
+- @game/server processes the "move" and broadcasts a "sync" message with the new state
+- @game/server sends an "over" message when the game is over, then closes the connection
