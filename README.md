@@ -11,9 +11,7 @@ implemented.
 - `@game/protocol`: Defines the structure of valid messages
 - `@game/shell`: A shell for interacting with the server and bot
 
-# Overview
-
-A sequence of events is best suited to overview the project.
+# Client-Server Interaction
 
 - @game/server listens for WebSocket connections
 - @game/client connects via WebSocket and sends a join message
@@ -27,7 +25,7 @@ A sequence of events is best suited to overview the project.
 - @game/server sends an "over" message when the game is over, then closes the
   connection
 
-# Demo
+# Quick Demo
 
 1. clone the repository (`git clone https://github.com/...`)
 2. install deno
