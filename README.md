@@ -24,3 +24,10 @@ A sequence of events is best suited to overview the project.
 - @game/client updates the game state and send a "move" the user played
 - @game/server processes the "move" and broadcasts a "sync" message with the new state
 - @game/server sends an "over" message when the game is over, then closes the connection
+
+# Demo
+
+1. clone the repository (`git clone https://github.com/...`)
+2. install deno
+3. run the server with `deno task server`
+4. run a client: you can start the bot with `deno task bot`
