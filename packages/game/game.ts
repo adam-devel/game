@@ -1,4 +1,4 @@
-import { Board, Turn, Move, Illigal, Win, Tie, X, O } from "./types.ts";
+import { Board, Turn, Move, Illigal, Win, Tie, X, O, TurnOver } from "./types.ts";
 
 export function make_board(n: number): Board {
   const board: Board = [];
@@ -47,10 +47,7 @@ export function play(b: Board, t: Turn, {line, col}: Move) {
   }
 
   // the game isn't over, switch turns
-  switch (t) {
-    case X: return O;
-    case O: return X;
-  }
+  return TurnOver;
 }
 
 export * from "./types.ts"

@@ -12,13 +12,14 @@ export type Move = {
   col: number;
 };
 
-// possible outcomes of a move are: Win, Tie, or Illigal
+// possible outcomes of a move are: Win, Tie, TurnOver, or Illigal
 export type Outcome = typeof Win | typeof Tie | typeof Illigal;
 export const Win = "Win";
 export const Tie = "Tie";
+export const TurnOver = "TurnOver";
 export const Illigal = "Illigal";
 
-// when the game is over, the outcomes are: Win for X/O or Tie
+// possible outcomes of a complete match are: Win for X/O or Tie
 export type Gameover = 
   | typeof X
   | typeof O
