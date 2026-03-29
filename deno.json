@@ -1,6 +1,6 @@
 {
   "imports": {
     "@game/game": "./packages/game/game.ts",
-    "@game/protocol": "./packages/protocol/types.ts"
+    "@game/protocol": "./packages/protocol/protocol.ts",
   }
 }
