@@ -1,7 +1,0 @@
-{
-  "tasks": {
-    "start": "deno run bot.ts"
-  },
-  "imports": {
-  }
-}
