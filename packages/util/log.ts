@@ -34,8 +34,7 @@ export function err(...args: LogArgs) {
 }
 
 export function printBoard(board: (string | null)[][], turn: string | null) {
-  const symbols = board.map((row) =>
-    row.map((cell) => cell ?? ".").join(" ")
-  ).join("\n");
+  const symbols = board.map((row) => row.map((cell) => cell ?? ".").join(" "))
+    .join("\n");
   console.log(`\n${symbols}\nTurn: ${turn}`);
 }

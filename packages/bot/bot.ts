@@ -1,6 +1,6 @@
-import { Board, Turn, Outcome } from "@game/game";
+import { Board, Outcome, Turn } from "@game/game";
 import { Message, PORT, Schema, VERSION } from "@game/protocol";
-import { dbg, printBoard } from "@game/log"
+import { dbg, printBoard } from "@game/log";
 import { decode, encode } from "@std/msgpack";
 import { assert } from "@std/assert";
 
@@ -16,19 +16,23 @@ export type Bot = {
   // handleDisconnect(this:Bot): void
   // handleErr(this:Bot): void
   // user events
-  move(this:Bot, l:number, c:number): void
-  close(this:Bot): void
-}
+  move(this: Bot, l: number, c: number): void;
+  close(this: Bot): void;
+};
 
 export type BotEvents = {
-  sync(board:Board, gameTurn: Turn, botTurn: Turn, start:boolean): void
-  over(outcome:Outcome): void
-}
+  sync(board: Board, gameTurn: Turn, botTurn: Turn, start: boolean): void;
+  over(outcome: Outcome): void;
+};
 
-export function bot(events:Partial<BotEvents>, wantTurn?: Turn, wantFirst?: boolean): Promise<Bot> {
+export function bot(
+  events: Partial<BotEvents>,
+  wantTurn?: Turn,
+  wantFirst?: boolean,
+): Promise<Bot> {
   return new Promise<Bot>((resolve, reject) => {
     const ws = new WebSocket(WS_URL);
-    let bot: Bot|null = null;
+    let bot: Bot | null = null;
 
     dbg("init promise", "-", `connecting to ${WS_URL}`);
 
@@ -38,7 +42,7 @@ export function bot(events:Partial<BotEvents>, wantTurn?: Turn, wantFirst?: bool
       reject(new Error("socket connection failed"));
     };
 
-    ws.onclose = ({reason}) => {
+    ws.onclose = ({ reason }) => {
       dbg("ws", "onclose", "socket connection closed");
       dbg("init promise", "rejecting", "socket closed before joining");
       reject(new Error(`socket closed before joining, reason: ${reason}`));
@@ -47,12 +51,20 @@ export function bot(events:Partial<BotEvents>, wantTurn?: Turn, wantFirst?: bool
     ws.onopen = () => {
       dbg("ws", "onopen", "ws connected successfully");
       dbg("init promise", "-", "sending a join request");
-      ws.send(encode([VERSION, "JOIN", wantTurn??null, wantFirst??false] satisfies Schema["Join"]));
+      ws.send(
+        encode(
+          [
+            VERSION,
+            "JOIN",
+            wantTurn ?? null,
+            wantFirst ?? false,
+          ] satisfies Schema["Join"],
+        ),
+      );
     };
 
     ws.binaryType = "arraybuffer";
     ws.addEventListener("message", (event) => {
-
       dbg("ws", "onmsg", "ws recieved a message");
 
       const bytes = new Uint8Array(event.data);
@@ -73,14 +85,18 @@ export function bot(events:Partial<BotEvents>, wantTurn?: Turn, wantFirst?: bool
           move: handleMove,
           close: handleClose,
         };
-        
-        dbg("ws", "-", "bot started, redirecting close and error events to bot");
-        bot.socket.onclose = ({reason}) => { 
-          assert(bot)
+
+        dbg(
+          "ws",
+          "-",
+          "bot started, redirecting close and error events to bot",
+        );
+        bot.socket.onclose = ({ reason }) => {
+          assert(bot);
           handleDisconnect.call(bot, reason);
         };
         bot.socket.onerror = () => {
-          assert(bot)
+          assert(bot);
           handleErr.call(bot);
         };
 
@@ -96,25 +112,26 @@ export function bot(events:Partial<BotEvents>, wantTurn?: Turn, wantFirst?: bool
   });
 }
 
-
-function handleMove( this: Bot, line: number, col: number,) {
+function handleMove(this: Bot, line: number, col: number) {
   dbg("msg", "move->", `move ${line} ${col}`);
   dbg("ws", "Move->", "-");
-  this.socket.send(encode([VERSION, "MOVE", line, col] satisfies Schema["Move"]));
+  this.socket.send(
+    encode([VERSION, "MOVE", line, col] satisfies Schema["Move"]),
+  );
 }
 
-function handleDisconnect(this:Bot, reason: string){
+function handleDisconnect(this: Bot, reason: string) {
   dbg("got disconnected", "-", "-", reason);
 }
 
-function handleErr(this:Bot){
+function handleErr(this: Bot) {
   // nothing currently
 }
 
-function handleMsg(this:Bot, events: Partial<BotEvents>, msg:Message){
-  const [_v, type ] = msg;
+function handleMsg(this: Bot, events: Partial<BotEvents>, msg: Message) {
+  const [_v, type] = msg;
   if (type === "SYNC") {
-    const [_v, _t, board, currentTurn ] = msg;
+    const [_v, _t, board, currentTurn] = msg;
     dbg("msg", `<-${type}`, "...");
     this.board = board;
     this.currentTurn = currentTurn;
@@ -122,18 +139,19 @@ function handleMsg(this:Bot, events: Partial<BotEvents>, msg:Message){
     events.sync?.(this.board, this.currentTurn, this.turn, false);
   } else if (type === "OVER") {
     const [_v, _t, outcome] = msg;
-    dbg("msg", `<-${type}`,
-        "Game over",
-        outcome === "Tie"
-          ? "nobody won"
-          : `${outcome} won`);
+    dbg(
+      "msg",
+      `<-${type}`,
+      "Game over",
+      outcome === "Tie" ? "nobody won" : `${outcome} won`,
+    );
   } else dbg("msg", "<-?", `unrecognized message type: ${type}`);
 }
 
 export function handleClose(this: Bot): void {
-  const reason = "user invoked close()"
-  dbg("user", "close!", "closing bot's socket", reason)
-  dbg("ws", "close!", "closing socket", reason)
+  const reason = "user invoked close()";
+  dbg("user", "close!", "closing bot's socket", reason);
+  dbg("ws", "close!", "closing socket", reason);
   this.socket.close();
 }
 
@@ -141,10 +159,15 @@ if (import.meta.main) {
   const stdinReader = Deno.stdin.readable.getReader();
   const decoder = new TextDecoder();
 
-  const xBot = await bot({sync(b,gTurn,bTurn){
-    printBoard(b,gTurn);
-    console.log(`our turn is: ${bTurn}`);
-  }}).catch((e:Error)=>{ console.error(e); Deno.exit(0) });
+  const xBot = await bot({
+    sync(b, gTurn, bTurn) {
+      printBoard(b, gTurn);
+      console.log(`our turn is: ${bTurn}`);
+    },
+  }).catch((e: Error) => {
+    console.error(e);
+    Deno.exit(0);
+  });
 
   while (true) {
     const { value, done } = await stdinReader.read();
@@ -172,7 +195,7 @@ if (import.meta.main) {
                   ---------
                     6 | 7 | 8
                   `);
-                  continue;
+      continue;
     }
 
     const parts = input.split(/[\s,]+/);
@@ -190,5 +213,4 @@ if (import.meta.main) {
     }
     console.log("Invalid input. Enter 'h' for help.");
   }
-
 }

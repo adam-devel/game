@@ -1,4 +1,14 @@
-import { Board, Turn, Move, Illigal, Win, Tie, X, O, TurnOver } from "./types.ts";
+import {
+  Board,
+  Illigal,
+  Move,
+  O,
+  Tie,
+  Turn,
+  TurnOver,
+  Win,
+  X,
+} from "./types.ts";
 
 export function make_board(n: number): Board {
   const board: Board = [];
@@ -11,7 +21,7 @@ export function make_board(n: number): Board {
   return board;
 }
 
-export function play(b: Board, t: Turn, {line, col}: Move) {
+export function play(b: Board, t: Turn, { line, col }: Move) {
   // validate the move
   if (line < 0 || line >= b.length) {
     return Illigal; // the "line" part of the move is out of bounds
@@ -27,7 +37,9 @@ export function play(b: Board, t: Turn, {line, col}: Move) {
   b[line][col] = t;
 
   // check for wins
-  if (horizontalWin() || verticalWin() || diagonalWin() || oppositeDiagonalWin()) { return Win }
+  if (
+    horizontalWin() || verticalWin() || diagonalWin() || oppositeDiagonalWin()
+  ) return Win;
   function horizontalWin(): boolean {
     return b[line].every((cell) => cell === t);
   }
@@ -50,4 +62,4 @@ export function play(b: Board, t: Turn, {line, col}: Move) {
   return TurnOver;
 }
 
-export * from "./types.ts"
+export * from "./types.ts";

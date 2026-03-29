@@ -1,7 +1,7 @@
 {
   "tasks": {
     "server": "cd packages/server && deno run --allow-net server.ts",
-    "bot": "cd packages/bot && deno run --allow-net --allow-read bot.ts",
+    "bot": "cd packages/bot && deno run --allow-net --allow-read bot.ts"
   },
   "imports": {
     "@game/bot": "./packages/bot/bot.ts",

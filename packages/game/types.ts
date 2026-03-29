@@ -4,7 +4,7 @@ export const X = "X";
 export const O = "O";
 
 // turns are recorded on a board
-export type Board = (Turn|null)[][]
+export type Board = (Turn | null)[][];
 
 // turns are played as a series of moves
 export type Move = {
@@ -20,7 +20,7 @@ export const TurnOver = "TurnOver";
 export const Illigal = "Illigal";
 
 // possible outcomes of a complete match are: Win for X/O or Tie
-export type Gameover = 
+export type Gameover =
   | typeof X
   | typeof O
-  | typeof Tie
+  | typeof Tie;
