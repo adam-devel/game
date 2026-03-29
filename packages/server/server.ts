@@ -46,27 +46,38 @@ function playerGet(part: WebSocket | Turn): Player | null {
   return result ?? null;
 }
 
-Deno.serve(
-  { port: PORT, onListen: serverOnListen },
-  (request) => {
-    if (request.headers.get("upgrade") !== "websocket") {
-      log.dbg("http", "request", "not websocket upgrade");
-      return new Response(null, { status: 404 });
-    }
+server();
+export function server() {
+  return new Promise((res) => {
+    Deno.serve(
+      {
+        port: PORT,
+        onListen: (a) => {
+          serverOnListen(a);
+          res(null);
+        },
+      },
+      (request) => {
+        if (request.headers.get("upgrade") !== "websocket") {
+          log.dbg("http", "request", "not websocket upgrade");
+          return new Response(null, { status: 404 });
+        }
 
-    const { socket, response } = Deno.upgradeWebSocket(request);
-    socket.binaryType = "arraybuffer";
+        const { socket, response } = Deno.upgradeWebSocket(request);
+        socket.binaryType = "arraybuffer";
 
-    socket.addEventListener("close", () => socketHandleClose(socket));
-    socket.addEventListener(
-      "message",
-      ({ data }) =>
-        socketHandleMessage(socket, new Uint8Array(data as ArrayBuffer)),
+        socket.addEventListener("close", () => socketHandleClose(socket));
+        socket.addEventListener(
+          "message",
+          ({ data }) =>
+            socketHandleMessage(socket, new Uint8Array(data as ArrayBuffer)),
+        );
+
+        return response;
+      },
     );
-
-    return response;
-  },
-);
+  });
+}
 
 function serverOnListen({ hostname, port }: Deno.NetAddr) {
   console.log(`Server running on ws://${hostname}:${port}`);
