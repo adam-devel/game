@@ -21,25 +21,10 @@ const BOARD_SIZE = 3;
 let gameBoard: Board | null = null;
 let gameTurn: Turn | null;
 
-/**
- * A Player is a coupling of a `socket` and a `turn`
- *
- * a `socket` can't play without a `turn`, and
- * a `turn` can't be played without moves from a `socket`
- */
 type Player = { socket: WebSocket; turn: Turn };
 
-/** Stores complete players */
 const playerRegistry = new Set<Player>();
 
-/**
- * Identifies a "player" from a partial player `part`
- *
- * Rationale:
- *   The WebSocket api only exposes the socket part of the player object.
- *   The @game/game API only exposes the "Turn" part of the player object.
- *   In order to consume both APIs we must identify a "player" from a part.
- */
 function playerGet(part: WebSocket | Turn): Player | null {
   const players = [...playerRegistry.keys()];
   const result = players.find((p) => p.socket === part || p.turn === part);
@@ -58,21 +43,33 @@ export function server() {
         },
       },
       (request) => {
+        log.dbg("http request received");
         if (request.headers.get("upgrade") !== "websocket") {
-          log.dbg("http", "request", "not websocket upgrade");
-          return new Response(null, { status: 404 });
+          log.info("only websocket connections accepted: responding with 426");
+          return new Response(null, { status: 426, headers: { "Upgrade": "websocket" } });
         }
 
         const { socket, response } = Deno.upgradeWebSocket(request);
         socket.binaryType = "arraybuffer";
 
-        socket.addEventListener("close", () => socketHandleClose(socket));
+        socket.addEventListener("open", () => {
+          log.dbg("websocket connection established");
+        })
+
+        socket.addEventListener("close", () => {
+          log.dbg("client disconnected");
+          socketHandleClose(socket)
+        });
+
         socket.addEventListener(
           "message",
-          ({ data }) =>
-            socketHandleMessage(socket, new Uint8Array(data as ArrayBuffer)),
+          ({ data }) => {
+            log.dbg("message received");
+            socketHandleMessage(socket, new Uint8Array(data as ArrayBuffer))
+          }
         );
 
+        log.dbg("upgrading connection to websocket");
         return response;
       },
     );
@@ -80,41 +77,34 @@ export function server() {
 }
 
 function serverOnListen({ hostname, port }: Deno.NetAddr) {
-  console.log(`Server running on ws://${hostname}:${port}`);
+  log.info(`listening on ws://${hostname}:${port}`);
 }
 
 function socketHandleClose(socket: WebSocket) {
   const player = playerGet(socket);
   if (!player) {
-    log.info("socket", "close", "ignoring unregistered socket");
+    log.dbg("ignoring unregistered client");
     return;
   }
 
   const opponent = playerGet(player.turn === X ? O : X);
   if (opponent) {
-    log.info(
-      "socket",
-      "close",
-      "disconnecting opponent",
-      `player=${player.turn}`,
-    );
+    log.info("player disconnected: disconnecting opponent");
     opponent.socket.close(1000, "Opponent Disconnected");
   } else {
-    log.info(
-      "socket",
-      "close",
-      "player has no opponent",
-      `player=${player.turn}`,
-    );
+    log.dbg("player disconnected, no opponent left");
   }
 
+  log.dbg("clearing player registry");
   playerRegistry.clear();
+
+  log.dbg("resetting game state");
   gameReset();
 }
 
 function socketHandleMessage(socket: WebSocket, data: Uint8Array) {
   if (socket.binaryType !== "arraybuffer") {
-    log.warn("socket", "message", "ignoring non-arraybuffer message");
+    log.warn("ignoring non-arraybuffer message");
     return;
   }
 
@@ -122,12 +112,14 @@ function socketHandleMessage(socket: WebSocket, data: Uint8Array) {
   const [version, ...body] = msg;
 
   if (version !== VERSION) {
-    log.warn("socket", "message", "closing socket", "version mismatch");
+    log.warn("message version mismatch: disconnecting client");
     socket.close(1000, "Version Mismatch");
     return;
   }
 
   const [type] = body;
+  log.dbg(`received message "${type}"`);
+
   if (type === "JOIN") {
     const [, wantTurn, wantFirst] = body;
     messageHandleJoin(socket, wantTurn, wantFirst);
@@ -135,7 +127,7 @@ function socketHandleMessage(socket: WebSocket, data: Uint8Array) {
     const [, line, col] = body;
     messageHandleMove(socket, line, col);
   } else {
-    log.warn("socket", "message", `unknown message type: ${type}`);
+    log.warn("unknown message type");
   }
 }
 
@@ -148,9 +140,8 @@ function messageHandleJoin(
   const oPlayer = playerGet(O);
 
   if (xPlayer && oPlayer) {
-    const reason = "Game full";
-    log.info("join", "full", `closing socket: ${reason}`);
-    socket.close(1000, reason);
+    log.info("refusing join request: game full");
+    socket.close(1000, "Game full");
     return;
   }
 
@@ -164,7 +155,7 @@ function messageHandleJoin(
   const currentOPlayer = playerGet(O);
 
   if (!currentXPlayer || !currentOPlayer) {
-    log.info("join", "waiting", `player=${player.turn}`);
+    log.dbg("sent WAIT");
     socket.send(encode([VERSION, "WAIT"] satisfies Schema["Wait"]));
     return;
   }
@@ -172,17 +163,15 @@ function messageHandleJoin(
   gameTurn = gameTurn ?? X;
   gameBoard = makeBoard(BOARD_SIZE);
 
-  log.info(
-    "join",
-    "start",
-    `x=${currentXPlayer.turn} o=${currentOPlayer.turn} turn=${gameTurn}`,
-  );
+  log.info("game starting");
 
+  log.dbg("sent START to X");
   currentXPlayer.socket.send(
     encode(
       [VERSION, "START", gameBoard, X, gameTurn] satisfies Schema["Start"],
     ),
   );
+  log.dbg("sent START to O");
   currentOPlayer.socket.send(
     encode(
       [VERSION, "START", gameBoard, O, gameTurn] satisfies Schema["Start"],
@@ -197,18 +186,18 @@ function messageHandleMove(socket: WebSocket, line: number, col: number) {
   const oPlayer = playerGet(O);
 
   if (!xPlayer || !oPlayer) {
-    log.warn("move", "no_game", "ignoring move: game hasn't started");
+    log.warn(`ignoring move: game hasn't started`);
     return;
   }
 
   const player = playerGet(socket);
   if (!player) {
-    log.warn("move", "unregistered", "ignoring move: socket not registered");
+    log.warn(`ignoring move: socket not registered`);
     return;
   }
 
   if (player.turn !== gameTurn) {
-    log.warn("move", "out_of_turn", `player=${player.turn} turn=${gameTurn}`);
+    log.warn(`ignoring move: out of turn`);
     messageBroadcastSync();
     return;
   }
@@ -242,11 +231,12 @@ function playerAdd(socket: WebSocket, wantTurn: Turn | null): Player {
 
   const player: Player = { socket, turn };
   playerRegistry.add(player);
+  log.dbg(`player joined: ${turn}`);
   return player;
 }
 
 function gameReset(): void {
-  log.info("game", "reset", "new game ready");
+  log.info("new game ready");
   gameBoard = makeBoard(BOARD_SIZE);
   gameTurn = null;
 }
@@ -258,11 +248,7 @@ function gameHandleMove(player: Player, line: number, col: number): void {
 
   switch (outcome) {
     case Illigal:
-      log.warn(
-        "move",
-        "illegal",
-        `player=${player.turn} line=${line} col=${col}`,
-      );
+      log.warn(`illegal move: ${line},${col}`);
       messageBroadcastSync();
       break;
 
@@ -283,14 +269,14 @@ function gameHandleMove(player: Player, line: number, col: number): void {
       messageBroadcastSync();
       messageBroadcastOver(Tie);
       log.printBoard(gameBoard, gameTurn);
-      log.info("game", "over", "tie");
+      log.info("game tied");
       break;
 
     case Win:
       messageBroadcastSync();
       messageBroadcastOver(player.turn);
       log.printBoard(gameBoard, gameTurn);
-      log.info("game", "over", `winner=${player.turn}`);
+      log.info(`game over: ${player.turn} wins`);
       break;
   }
 }
@@ -300,9 +286,11 @@ function messageBroadcastSync(): void {
   const oPlayer = playerGet(O);
   if (!xPlayer || !oPlayer) return;
 
+  log.dbg("sent SYNC");
   xPlayer.socket.send(
     encode([VERSION, "SYNC", gameBoard!, gameTurn!] satisfies Schema["Sync"]),
   );
+  log.dbg("sent SYNC");
   oPlayer.socket.send(
     encode([VERSION, "SYNC", gameBoard!, gameTurn!] satisfies Schema["Sync"]),
   );
@@ -313,9 +301,11 @@ function messageBroadcastOver(outcome: Gameover): void {
   const oPlayer = playerGet(O);
   if (!xPlayer || !oPlayer) return;
 
+  log.info("sent OVER");
   xPlayer.socket.send(
     encode([VERSION, "OVER", outcome] satisfies Schema["Over"]),
   );
+  log.info("sent OVER");
   oPlayer.socket.send(
     encode([VERSION, "OVER", outcome] satisfies Schema["Over"]),
   );

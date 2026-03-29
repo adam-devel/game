@@ -1,40 +1,74 @@
-export enum DebugLevel {
-  quiet = 0,
-  default = 1,
-  info = 2,
-  verbose = 3,
-}
+const STYLES = {
+  dbg: "color: blue",
+  info: "",
+  warn: "color: orange",
+  err: "color: red",
+};
 
-const DEBUG_LEVEL = DebugLevel.verbose;
+let needsLeadingNewline = false;
 
-function log_structured(who: string, ctx: string, what: string, why?: string) {
-  if (why) {
-    console.log(`[${who} (${ctx})]: ${why}, ${what}`);
-  } else {
-    console.log(`[${who} (${ctx})]: ${what}`);
+function printCtx(label: string, msg: string, ctx: string[] | Record<string, unknown> | [unknown], style: string) {
+  console.log(`%c\n${label}%c ${msg}`, style, STYLES.info);
+  needsLeadingNewline = true;
+
+  if (!Array.isArray(ctx)) {
+    const keys = Object.keys(ctx);
+    for (const key of keys) {
+      console.log(`  - ${key} = ${(ctx as Record<string, unknown>)[key]}`);
+    }
+    return;
+  }
+
+  if (ctx.length === 1) {
+    const val = ctx[0];
+    if (typeof val === "object" && val !== null && !Array.isArray(val)) {
+      const keys = Object.keys(val);
+      if (keys.length === 1) {
+        console.log(`  - ${keys[0]} = ${(val as Record<string, unknown>)[keys[0]]}`);
+        return;
+      }
+    }
+    console.log(val);
+    return;
+  }
+
+  for (const item of ctx) {
+    console.log(`  - ${item}`);
   }
 }
 
-type LogArgs = Parameters<typeof log_structured>;
+function logFn(msg: string, ctx?: string[] | Record<string, unknown> | [unknown], label = "", style = "") {
+  if (!ctx) {
+    if (needsLeadingNewline) {
+      console.log(`%c\n${label}%c ${msg}`, style, STYLES.info);
+      needsLeadingNewline = false;
+    } else {
+      console.log(`%c${label}%c ${msg}`, style, STYLES.info);
+    }
+    return;
+  }
 
-export function dbg(...args: LogArgs) {
-  if (DEBUG_LEVEL >= DebugLevel.verbose) log_structured(...args);
+  printCtx(label, msg, ctx, style);
 }
 
-export function info(...args: LogArgs) {
-  if (DEBUG_LEVEL >= DebugLevel.info) log_structured(...args);
+export function log(msg: string, ctx?: string[] | Record<string, unknown> | [unknown]) {
+  logFn(msg, ctx);
 }
 
-export function warn(...args: LogArgs) {
-  if (DEBUG_LEVEL >= DebugLevel.default) log_structured(...args);
+export function dbg(msg: string, ctx?: string[] | Record<string, unknown> | [unknown]) {
+  logFn(msg, ctx, "DBUG", STYLES.dbg);
 }
 
-export function err(...args: LogArgs) {
-  if (DEBUG_LEVEL >= DebugLevel.quiet) log_structured(...args);
+export function info(msg: string, ctx?: string[] | Record<string, unknown> | [unknown]) {
+  logFn(msg, ctx, "INFO", STYLES.info);
 }
 
-export function printBoard(board: (string | null)[][], turn: string | null) {
-  const symbols = board.map((row) => row.map((cell) => cell ?? ".").join(" "))
-    .join("\n");
-  console.log(`\n${symbols}\nTurn: ${turn}`);
+export function warn(msg: string, ctx?: string[] | Record<string, unknown> | [unknown]) {
+  logFn(msg, ctx, "WARN", STYLES.warn);
 }
+
+export function err(msg: string, ctx?: string[] | Record<string, unknown> | [unknown]) {
+  logFn(msg, ctx, "ERR ", STYLES.err);
+}
+
+export { printBoard } from "./fmt.ts";

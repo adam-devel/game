@@ -1,6 +1,6 @@
 import { Board, Outcome, Turn } from "@game/game";
 import { Message, PORT, Schema, VERSION } from "@game/protocol";
-import { dbg } from "@game/log";
+import * as log from "@game/log";
 import { decode, encode } from "@std/msgpack";
 import { assert } from "@std/assert";
 
@@ -11,11 +11,6 @@ export type Bot = {
   turn: Turn;
   board: Board;
   currentTurn: Turn;
-  // server events
-  // handleMsg(this:Bot, msg:Message): void
-  // handleDisconnect(this:Bot): void
-  // handleErr(this:Bot): void
-  // user events
   move(this: Bot, l: number, c: number): void;
   close(this: Bot): void;
 };
@@ -34,23 +29,23 @@ export function bot(
     const ws = new WebSocket(WS_URL);
     let bot: Bot | null = null;
 
-    dbg("init promise", "-", `connecting to ${WS_URL}`);
+    log.dbg(`connecting to ${WS_URL}`);
 
     ws.onerror = () => {
-      dbg("ws", "onerror", "socket connection failed");
-      dbg("init promise", "rejecting", "socket connection failed");
+      log.warn("socket error (ws:onerror)");
+      log.warn("rejecting socket connection");
       reject(new Error("socket connection failed"));
     };
 
     ws.onclose = ({ reason }) => {
-      dbg("ws", "onclose", "socket connection closed");
-      dbg("init promise", "rejecting", "socket closed before joining");
+      log.dbg("socket closed (ws:onclose)");
+      log.warn(`rejecting socket connection: ${reason}`);
       reject(new Error(`socket closed before joining, reason: ${reason}`));
     };
 
     ws.onopen = () => {
-      dbg("ws", "onopen", "ws connected successfully");
-      dbg("init promise", "-", "sending a join request");
+      log.dbg("socket open (ws:onopen)");
+      log.dbg("sending join request");
       ws.send(
         encode(
           [
@@ -61,22 +56,23 @@ export function bot(
           ] satisfies Schema["Join"],
         ),
       );
+      log.dbg("sent JOIN");
     };
 
     ws.binaryType = "arraybuffer";
     ws.addEventListener("message", (event) => {
-      dbg("ws", "onmsg", "ws recieved a message");
-
       const bytes = new Uint8Array(event.data);
       const msg = decode(bytes) as Message;
       const [, type] = msg;
 
+      log.dbg("received message (ws:onmessage)");
+
       if (type === "WAIT") {
-        dbg("msg", `<-${type}`, "");
-        dbg("init promise", "-", "won't resolve yet!");
+        log.dbg("received WAIT");
+        log.dbg("waiting for opponent");
       } else if (type === "START") {
         const [_v, _t, board, turn, currentTurn] = msg;
-        dbg("msg", `<-${type}`, `Joined as ${turn}`);
+        log.dbg("received START");
         bot = {
           socket: ws,
           board,
@@ -86,11 +82,7 @@ export function bot(
           close: handleClose,
         };
 
-        dbg(
-          "ws",
-          "-",
-          "bot started, redirecting close and error events to bot",
-        );
+        log.dbg("redirecting event handlers to bot");
         bot.socket.onclose = ({ reason }) => {
           assert(bot);
           handleDisconnect.call(bot, reason);
@@ -100,10 +92,10 @@ export function bot(
           handleErr.call(bot);
         };
 
-        dbg("init promise", "res", "resolving with bot object", "game started");
+        log.dbg("resolving promise");
         resolve(bot);
 
-        dbg("event signaler", `start|sync`, `notifying consumer: sync(...)`);
+        log.dbg("emitting sync event");
         events.sync?.(board, currentTurn, turn, true);
       } else if (bot !== null) {
         handleMsg.call(bot, events, msg);
@@ -113,44 +105,36 @@ export function bot(
 }
 
 function handleMove(this: Bot, line: number, col: number) {
-  dbg("msg", "move->", `move ${line} ${col}`);
-  dbg("ws", "Move->", "-");
+  log.dbg(`sending move to server: ${line},${col}`);
   this.socket.send(
     encode([VERSION, "MOVE", line, col] satisfies Schema["Move"]),
   );
 }
 
 function handleDisconnect(this: Bot, reason: string) {
-  dbg("got disconnected", "-", "-", reason);
+  log.dbg(`socket disconnected: ${reason}`);
 }
 
 function handleErr(this: Bot) {
-  // nothing currently
+  log.warn("socket error (ws:error)");
 }
 
 function handleMsg(this: Bot, events: Partial<BotEvents>, msg: Message) {
   const [_v, type] = msg;
   if (type === "SYNC") {
     const [_v, _t, board, currentTurn] = msg;
-    dbg("msg", `<-${type}`, "...");
+    log.dbg("received SYNC");
     this.board = board;
     this.currentTurn = currentTurn;
-    dbg("event signaler", `start|sync`, `notifying consumer: sync(...)`);
+    log.dbg("emitting sync event");
     events.sync?.(this.board, this.currentTurn, this.turn, false);
   } else if (type === "OVER") {
     const [_v, _t, outcome] = msg;
-    dbg(
-      "msg",
-      `<-${type}`,
-      "Game over",
-      outcome === "Tie" ? "nobody won" : `${outcome} won`,
-    );
-  } else dbg("msg", "<-?", `unrecognized message type: ${type}`);
+    log.dbg(`received OVER: ${outcome}`);
+  } else log.warn("unrecognized message type");
 }
 
 export function handleClose(this: Bot): void {
-  const reason = "user invoked close()";
-  dbg("user", "close!", "closing bot's socket", reason);
-  dbg("ws", "close!", "closing socket", reason);
+  log.dbg("closing socket");
   this.socket.close();
 }
