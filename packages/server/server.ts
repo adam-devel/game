@@ -263,6 +263,7 @@ function gameHandleMove(player: Player, line: number, col: number): void {
         "illegal",
         `player=${player.turn} line=${line} col=${col}`,
       );
+      messageBroadcastSync();
       break;
 
     case TurnOver:
@@ -279,12 +280,14 @@ function gameHandleMove(player: Player, line: number, col: number): void {
       break;
 
     case Tie:
+      messageBroadcastSync();
       messageBroadcastOver(Tie);
       log.printBoard(gameBoard, gameTurn);
       log.info("game", "over", "tie");
       break;
 
     case Win:
+      messageBroadcastSync();
       messageBroadcastOver(player.turn);
       log.printBoard(gameBoard, gameTurn);
       log.info("game", "over", `winner=${player.turn}`);
