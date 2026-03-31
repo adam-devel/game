@@ -1,14 +1,17 @@
 {
+  "workspace": {
+    "members": ["./packages/bot", "./packages/game", "./packages/protocol", "./packages/server", "./packages/util"]
+  },
   "tasks": {
-    "server": "cd packages/server && deno run --allow-net server.ts",
-    "bot": "cd packages/bot && deno run --allow-net --allow-read term.ts"
+    "server": "cd packages/server && deno task start",
+    "bot": "cd packages/bot && deno task start"
   },
   "imports": {
+    "@game/log": "./packages/util/log.ts",
     "@game/bot": "./packages/bot/bot.ts",
     "@game/game": "./packages/game/game.ts",
     "@game/protocol": "./packages/protocol/protocol.ts",
     "@game/server": "./packages/server/server.ts",
-    "@game/log": "./packages/util/log.ts",
     "@std/msgpack": "jsr:@std/msgpack@^1.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.0"
   }

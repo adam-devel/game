@@ -1,0 +1,8 @@
+{
+  "name": "@game/bot",
+  "version": "1.0.0",
+  "exports": "./bot.ts",
+  "tasks": {
+    "start": "deno run --allow-net --allow-read term.ts"
+  }
+}

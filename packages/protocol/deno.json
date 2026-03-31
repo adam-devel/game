@@ -1,0 +1,5 @@
+{
+  "name": "@game/protocol",
+  "version": "1.0.0",
+  "exports": "./protocol.ts"
+}
