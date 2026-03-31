@@ -1,7 +1,7 @@
 {
   "tasks": {
     "server": "cd packages/server && deno run --allow-net server.ts",
-    "bot": "cd packages/bot && deno run --allow-net --allow-read term.ts",
+    "bot": "cd packages/bot && deno run --allow-net --allow-read term.ts"
   },
   "imports": {
     "@game/bot": "./packages/bot/bot.ts",
@@ -9,7 +9,6 @@
     "@game/protocol": "./packages/protocol/protocol.ts",
     "@game/server": "./packages/server/server.ts",
     "@game/log": "./packages/util/log.ts",
-    // third party dependencies
     "@std/msgpack": "jsr:@std/msgpack@^1.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.0"
   }
