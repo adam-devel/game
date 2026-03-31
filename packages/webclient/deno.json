@@ -1,0 +1,14 @@
+{
+  "name": "@game/webclient",
+  "version": "1.0.0",
+  "exports": "./client.ts",
+  "compilerOptions": {
+    "lib": ["dom", "esnext"]
+  },
+  "imports": {
+    "@std/msgpack": "jsr:@std/msgpack@^1.0.3"
+  },
+  "tasks": {
+    "build": "deno bundle client.ts -o client.js"
+  }
+}

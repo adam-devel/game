@@ -30,6 +30,13 @@
     "dependencies": [
       "jsr:@std/assert@1",
       "jsr:@std/msgpack@^1.0.3"
-    ]
+    ],
+    "members": {
+      "packages/webclient": {
+        "dependencies": [
+          "jsr:@std/msgpack@^1.0.3"
+        ]
+      }
+    }
   }
 }
