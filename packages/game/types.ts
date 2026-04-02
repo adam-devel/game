@@ -13,7 +13,7 @@ export type Move = {
 };
 
 // possible outcomes of a move are: Win, Tie, TurnOver, or Illigal
-export type Outcome = typeof Win | typeof Tie | typeof Illigal;
+export type Outcome = typeof Win | typeof Tie | typeof Illigal | typeof TurnOver;
 export const Win = "Win";
 export const Tie = "Tie";
 export const TurnOver = "TurnOver";
