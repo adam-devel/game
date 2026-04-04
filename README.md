@@ -1,6 +1,4 @@
-Building the foundation for a multiplayer game. Currently tictactoe will serve
-as a placeholder, once the foundation is solid, a different game will be
-implemented.
+Creating a multiplayer game. The foundation is ready for implementing the game and removing the placeholder "TicTacToe" logic. 
 
 # Packages
 
