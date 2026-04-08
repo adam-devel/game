@@ -9,23 +9,21 @@ Creating a multiplayer game. The foundation is ready for implementing the game a
 - `@game/protocol`: Defines the structure of valid messages
 - `@game/shell`: A shell for interacting with the server and bot
 
-# Client-Server Interaction
+# Game Flow
 
-- @game/server listens for WebSocket connections
-- @game/client connects via WebSocket and sends a join message
-  - @game/client receives a "wait" message: waiting for an opponent
-  - or @game/client receives a "start" message: the game starts
-- @game/client initializes the game based on the received state
-- @game/server refuses further join messages, until the match ends
-- @game/client updates the game state and send a "move" the user played
-- @game/server processes the "move" and broadcasts a "sync" message with the new
-  state
-- @game/server sends an "over" message when the game is over, then closes the
-  connection
+1. **WAITING**: 2-5 players join a world. Players can move but cannot dig, attack, or push
+2. **PLAYING**: Majority votes to start. All actions enabled
+3. **OVER**: Last survivor wins
+
+# Prediction & Reconciliation
+
+- Both server and client use the same `@game/game` simulation function
+- Server processes actions then broadcasts the same EVENTs for the clients to process
+- Server periodically sends SYNC to for clients to reconcile drift
 
 # Quick Demo
 
 1. clone the repository (`git clone https://github.com/...`)
-2. install deno
+2. install deno: `choco install deno` if you are using choclaty
 3. run the server with `deno task server`
 4. run a client: you can start the bot with `deno task bot`
