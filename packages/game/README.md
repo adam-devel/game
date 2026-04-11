@@ -8,20 +8,23 @@ The module's API are separated into separate levels:
 
 the operational API provides a client API and a Server API, both APIs make no assumptions about available server/client APIs, rather the API is driven by the consumer.
 
-# The game
+# Game Mechanics
 
-A 2d game inspired by "spleef" minigames in minecraft.
+A 2D game inspired by "Spleef" minigames in Minecraft.
 
-Players join a new world where they wait for players, or they join an existing world of other players waiting for them. players are allowed to move around and see the other players move around. The game start when the majority votes for it to start or the maximum number of players is reached.
+Players join a new world where they wait for players, or they join an existing world of other players waiting for them. Players are allowed to move around and see other players move around. The game starts when the majority votes to start or the maximum number of players is reached.
 
-When the majority of the players vote, a timer begins to countdown until the game officially starts. if a game take a away their vote the counter is cancelled.
+When the majority of players vote, a timer begins counting down for the game to officially start. The counter is canceled if a player takes away their vote or leaves.
 
-The world is made of tiles. Most tiles are solid, some tiles are half broken. When the game starts, players are allowed to attack each other and break tiles.
+The world is made of tiles. Most tiles are solid, some tiles are cracked. When the game starts, players are allowed to break tiles, bump into other players, or shoot balls at them to knock them off a solid tile into a cracked one.
 
-A player can be in default mode, attack mode, knock mode, or rock mode. in attack mode, the player is rendered as having a spear by their side. in attack mode the player deals damage. when the player is in knock mode it's body gets smaller, it gets a smaller hitbox, and is faster so it knocks players harder, however the higher velocity makes it harder for the player to control their motion, so it's high risk high reward. in knock mode the player body puffs up and gets a bigger hitbox, however they become heavier: slower movement but harder to kock. also if you get hit by someone coming at you with high velocity they get dealt some damage. however because you are heavier, the tiles under you start breaking, even if a tile is solid (solidness = 1) it starts breaking up. default mode is a middleground.
+When a tile breaks, a player standing on it falls into the void and dies.
 
-A player may sprint and use up their stamina, or they can fill up their stamina to "dash" in a straight line and run away from a coming player. stamina automatically refills.
+# Future Development
 
-When a player is in attack mode or rock mode, the camera automatically zooms in when they get closer to a player to make it easier to aim.
+- **Sprint**: A player may sprint to use stamina, or fill it to dash in a straight line and run away from a pursuer. Stamina automatically refills.
+- **Attack**: A player can enter "attack mode" where they appear holding a spear. In attack mode, the player deals damage when bumping into another player.
+- **Dash**: When dashing, the player's body becomes smaller, reducing their hitbox. They move faster and knock other players harder, but the higher velocity makes it harder to control movement, risking a fall.
+- **Defend**: In rock mode, the player puffs up with a larger hitbox. They become heavier—slower movement but harder to knock. If hit by a high-velocity player, that player takes damage (like hitting a wall). However, the added weight causes tiles beneath the player to break, even solid ones.
+- The camera automatically zooms in when a player gets close to another player to make aiming or dodging easier in modes like "attack".
 
-When a tile is broken, a player standing on it falls into the void and dies
