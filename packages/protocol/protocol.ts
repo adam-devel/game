@@ -1,69 +1,51 @@
-import { Board, Gameover, Turn } from "@game/game";
-
 export const PORT = 3000;
 export const VERSION = "1.0.0";
 
-export type Schema = {
-  /**
-   * Client sends this to join a game session.
-   *
-   * `wantTurn`: preferred turn to play as (null: no preference)
-   * `wantFirst`: preference to play first
-   */
-  Join: [
-    version: typeof VERSION,
-    type: "JOIN",
-    wantTurn: Turn | null,
-    wantFirst: boolean,
-  ];
+/** Player joins the game with their display name */
+export type ClientJoin = [version: typeof VERSION, type: "JOIN", name: string];
 
-  /**
-   * Client sends this to make a move.
-   *
-   * `line`: row index (0-based)
-   * `col`: column index (0-based)
-   */
-  Move: [version: typeof VERSION, type: "MOVE", line: number, col: number];
+/** Player moves to location (x, y) */
+export type ClientMove = [version: typeof VERSION, type: "MOVE", x: number, y: number];
 
-  /**
-   * Server sends this when waiting for an opponent.
-   */
-  Wait: [version: typeof VERSION, type: "WAIT"];
+/** Player changes head angle in radians */
+export type ClientHead = [version: typeof VERSION, type: "AIM", angle: number];
 
-  /**
-   * Server sends this when game starts.
-   *
-   * `board`: initial game board
-   * `yourTurn`: which turn this player controls (X or O)
-   * `currentTurn`: whose turn it is to move
-   */
-  Start: [
-    version: typeof VERSION,
-    type: "START",
-    board: Board,
-    yourTurn: Turn,
-    currentTurn: Turn,
-  ];
+/** Player votes to start the game (or take away their vote) */
+export type ClientVote = [version: typeof VERSION, type: "VOTE", should_start: boolean];
 
-  /**
-   * Server sends this to sync game state.
-   *
-   * Clients may use prediction for smoother gameplay,
-   * but the server remains the authority.
-   */
-  Sync: [
-    version: typeof VERSION,
-    type: "SYNC",
-    board: Board,
-    currentTurn: Turn,
-  ];
+/** Player digs at tile (x, y) */
+export type ClientDig = [version: typeof VERSION, type: "DIG", x: number, y: number];
 
-  /**
-   * Server sends this when game ends.
-   *
-   * `outcome`: winner (X or O) or "Tie"
-   */
-  Over: [version: typeof VERSION, type: "OVER", outcome: Gameover];
-};
+/** Player shoots a ball at an angle */
+export type ClientShoot = [version: typeof VERSION, type: "AIM", angle: number];
 
-export type Message = Schema[keyof Schema];
+/** Game starts */
+export type ServerGameStarted = [version: typeof VERSION, type: "START"];
+
+/** Server updates player location */
+export type ServerPlayerMoved = [version: typeof VERSION, type: "MOVE", x: number, y: number, id: string];
+
+/** Server updates player aim angle */
+export type ServerPlayerAimed = [version: typeof VERSION, type: "AIM", id: string, angle: number];
+
+/** Full game state sync from server to clients */
+export type ServerGameSync = [
+  version: typeof VERSION,
+  type: "SYNC",
+  world: number[][],
+  players: Array<{
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+  }>,
+];
+
+/** Game ends, winnerId is null if draw */
+export type ServerGameOver = [version: typeof VERSION, type: "OVER", winnerId: string | null];
+
+export type ClientMessage = ClientJoin | ClientMove | ClientVote | ClientDig
+export type ServerMessage = ServerGameSync | ServerGameStarted | ServerGameOver;
+export type Message = ClientMessage | ServerMessage
