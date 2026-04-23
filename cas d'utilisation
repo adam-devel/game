@@ -1,0 +1,271 @@
+# Cas d'utilisation - Jeu Multijoueur 2D Spleef
+
+## 1. Vue d'ensemble du projet
+
+### 1.1 Description du jeu
+
+Jeu multijoueur temps reel 2D inspire des mini-jeux *Spleef* de Minecraft ou l'objectif est d'etre le **dernier survivant**. Les joueurs s'affrontent dans une arene composee de tuiles solides et de tuiles fragiles (cassables). Lorsqu'une tuile se brise sous un joueur, celui-ci tombe dans le vide et est elimine.
+
+### 1.2 Architecture technique
+
+Le projet est structure en plusieurs modules/packages:
+- `@game/server`: Serveur de jeu (Deno)
+- `@game/client`: Client Android (React Native + Skia)
+- `@game/bot`: Client automatique pour tests
+- `@game/game`: Logique du jeu (simulation)
+- `@game/protocol`: Definition des messages reseau (MessagePack)
+- `@game/shell`: Interface CLI pour administrateurs
+
+### 1.3 Principe cle - Prediction et Reconciliation
+
+- La meme simulation (`@game/game`) est partagee entre le client et le serveur
+- Le client predit les	resultats localement pour un gameplay fluide
+- Le serveur valide les actions et diffuse les evenements
+- Le serveur envoie periodiquement des snapshots pour reconcilier les decalages (drift)
+
+---
+
+## 2. Phases du jeu
+
+| UC# | Phase | Description |
+|-----|-------|-------------|
+| UC001 | WAITING | 2-5 joueurs rejoignent un monde. Les joueurs peuvent se deplacer mais ne peuvent pas creuser, attaquer, ni pousser. |
+| UC002 | PLAYING | La majorite vote pour commencer ou le nombre maximum de joueurs est atteint. Toutes les actions sont activees. |
+| UC003 | OVER | Le dernier joueur survivant gagne. Fin de la partie. |
+
+---
+
+## 3. Cas d'utilisation - Gestion des joueurs
+
+### 3.1Rejoindre une partie
+
+| UC# | Description |
+|-----|-------------|
+| UC010 | Un joueur rejoint un nouveau monde (vide) |
+| UC011 | Un joueur rejoint un monde existant avec dautres joueurs |
+| UC012 | Un joueur quitte un monde |
+| UC013 | Un joueur se deconnecte (fermeture de lappareil/perte de connexion) |
+
+**Flux:**
+1. Le joueur se connecte au serveur via WebSocket
+2. Le joueur envoie un message `join` (0x01)
+3. Le serveur verifie la disponibilite
+4. Si accepte: envoi de `join_ack` (0x02) avec les informations du monde
+5. Si refuse: envoi de `join_nack` (0x03) avec la raison
+
+### 3.2 Deplacement
+
+| UC# | Description |
+|-----|-------------|
+| UC020 | Le joueur se deplace dans le monde |
+
+**Contraintes:**
+- En phase WAITING: mouvement autorise uniquement
+- En phase PLAYING: mouvement autorise
+- Validation du mouvement dans les limites du monde
+
+---
+
+## 4. Cas d'utilisation - Systeme de vote
+
+### 4.1 Vote pour demarrer
+
+| UC# | Description |
+|-----|-------------|
+| UC030 | La majorite vote pour demarrer la partie |
+| UC031 | Le compte a rebours demarre |
+| UC032 | Un joueur retire son vote, le compte a rebours est annule |
+| UC033 | Un joueur quitte, le compte a rebours est annule |
+| UC034 | Le nombre maximum de joueurs (5) est atteint, la partie demarre automatiquement |
+
+**Flux:**
+1. Un joueur envoie un message `vote` (0x09)
+2. Le serveur met a jour les votes
+3. Si majorite atteinte: envoi de `vote_start` (0x08), puis `countdown` (0x0A) avec le compte a rebours
+4. Quand le compte arrive a zero: envoi de `game_start` (0x0B)
+
+---
+
+## 5. Cas d'utilisation - Actions en jeu (PLAYING uniquement)
+
+### 5.1 Creuser des tuiles
+
+| UC# | Description |
+|-----|-------------|
+| UC040 | Le joueur casse une tuile a une position donnee |
+
+**Regle:** Une tuile cassee sous un joueur le fait tomber dans le vide et etre elimine.
+
+### 5.2 Pousser un autre joueur
+
+| UC# | Description |
+|-----|-------------|
+| UC041 | Le joueur percute un autre joueur pour le pousse |
+
+**Physique:** Les collisions joueur-joueur transferent de l'energie cinetique.
+
+### 5.3 Tirer une balle
+
+| UC# | Description |
+|-----|-------------|
+| UC042 | Le joueur tire une balle vers un autre joueur |
+| UC043 | La cible recoit un knockback |
+
+**Ballistique:** La trajectoire de la balle est calibree pour appliquer un knockback propulse.
+
+---
+
+## 6. Cas d'utilisation - Fin de partie
+
+### 6.1 Mort d'un joueur
+
+| UC# | Description |
+|-----|-------------|
+| UC050 | Un joueur tombe dans le vide (tuile cassee sous lui) |
+
+### 6.2 Victoire
+
+| UC# | Description |
+|-----|-------------|
+| UC051 | Le dernier joueur survivant gagne -> passage a l'etat OVER |
+| UC052 | Le serveur envoie `game_over` (0x0C) avec le gagnant |
+
+---
+
+## 7. Cas d'utilisation - Communication reseau
+
+### 7.1 Messages client -> serveur
+
+| ID  | Message | Description |
+|-----|--------|-------------|
+| 0x01 | join | Requisition de rejoindre une partie |
+| 0x04 | input | Entree joueur (direction, action) |
+| 0x09 | vote | Voter pour demarrer |
+| 0x0E | pong | Reponse au ping |
+
+### 7.2 Messages serveur -> client
+
+| ID  | Message | Description |
+|-----|--------|-------------|
+| 0x02 | join_ack | Confirmation d'inscription |
+| 0x03 | join_nack | Refus (monde plein, etc.) |
+| 0x05 | state_delta | Delta d'etat du monde |
+| 0x06 | player_join | Notification qu'un joueur rejoint |
+| 0x07 | player_leave | Notification qu'un joueur quitte |
+| 0x08 | vote_start | Notification de vote recu |
+| 0x0A | countdown | Compte a rebours |
+| 0x0B | game_start | Debut de la partie |
+| 0x0C | game_over | Fin de partie |
+| 0x0D | ping | Keep-alive / latence |
+| 0xFF | snapshot |Etat complet (reconciliation) |
+
+---
+
+## 8. Cas d'utilisation - Prediction et Reconciliation
+
+### 8.1 Prediction cot cliente
+
+| UC# | Description |
+|-----|-------------|
+| UC060 | Le client predit le resultat en utilisant la meme simulation que le serveur |
+
+**Mecanisme:**
+1. Le client recoit l'input utilisateur
+2. Il simule localement le resultat avec `@game/game`
+3. Affiche immediatement le resultat (sans latence percue)
+
+### 8.2 Validation serveur
+
+| UC# | Description |
+|-----|-------------|
+| UC061 | Le serveur diffuse des EVENEMENTS pour le traitement par les clients |
+
+**Mecanisme:**
+1. Le serveur recoit l'input
+2. Il valide et simule a son tour
+3. Il broadcast les `state_delta` (0x05) aux clients
+
+### 8.3 Reconciliation
+
+| UC# | Description |
+|-----|-------------|
+| UC062 | Le serveur envoie SYNC pour reconcilier le drift |
+
+**Mecanisme:**
+1. Toutes les 1-2 secondes, le serveur envoie un `snapshot` (0xFF)
+2. Le client compare l'etat simule avec le snapshot
+3. Si decalage > seuil, le client corrige l'etat
+
+---
+
+## 9. Cas d'utilisation - Bot (tests automatises)
+
+Le bot supporte les actions suivantes:
+- **MOVE**: Envoyer une entree de vitesse (velx, vely)
+- **HIT**: Frapper un autre joueur par ID cible
+- **DIG**: Creuser a une position (x, y)
+- **VOTE_START**: Voter pour demarrer quand assez de joueurs ont rejoint
+
+---
+
+## 10. Fonctionnalites futures (hors champ v1)
+
+| UC# | Feature | Description |
+|-----|---------|-------------|
+| UC070 | Sprint | Utiliser lendurance pour dash en ligne droite |
+| UC071 | Attack mode | Mode attaque avec lance |
+| UC072 | Dash | Hitbox reduite, mouvement plus rapide, knockback accru |
+| UC073 | Defend (Rock mode) | Hitbox plus grande, plus lourd, tuiles cassent en dessous |
+| UC074 | Camera zoom | Zoom automatique quand un joueur sapproach dun autre |
+
+---
+
+## 11. Diagramme de sequence - Flux principal
+
+```
++Joueur A               +Serveur               +Joueur B
+   |                     |                      |
+   |--- WebSocket connect -->|                      |
+   |                     |                      |
+   |---- join (0x01) --->|                      |
+   |                     |<--- join (0x01) ----|
+   |                     |                      |
+   |<-- join_ack(0x02) --|<- join_ack (0x02) --|
+   |                     |                      |
+   |                     |<-- player_join (0x06) -|
+   |                     |                      |
+   |<-- state_delta(0x05)|<-- state_delta(0x05)--|
+   |                     |                      |
+   |--- vote (0x09) ----->|                      |
+   |                     |<--- vote (0x09) ------|
+   |                     |                      |
+   |< vote_start(0x08) ---|<- vote_start (0x08) --|
+   |                     |                      |
+   |< countdown(0x0A) ---|<- countdown (0x0A) --|
+   |                     |                      |
+   |< game_start(0x0B) ->|<- game_start (0x0B) --|
+   |                     |                      |
+   |--- input (0x04) --->|                      |
+   |                     |<--- input (0x04) -----|
+   |                     |                      |
+   |< state_delta(0x05) --|<- state_delta(0x05) ---|
+   |                     |                      |
+   |--- DIG action ------>|                      |
+   |                     |<--- DIG action ------|
+   |                     |                      |
+   |< state_delta(0x05) --|<- state_delta(0x05) ---|
+   |                     |                      |
+   |                    (joueur B meurt)        |
+   |                     |                      |
+   |< game_over (0x0C) --->|<- game_over (0x0C) ---|
+```
+
+---
+
+## 12. Exigences non fonctionnelles
+
+- **Performance**: Gameplay fluide (60 tick/s)
+- **Fiabilite**: Coherence entre clients
+- **Maintenabilite**: Code modulaire
+- **Scalabilite**: Support de plusieurs mondes en paralelo
+- **Latence**: Minimisee grace a la prediction client et MessagePack
