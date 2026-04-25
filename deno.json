@@ -1,6 +1,6 @@
 {
   "workspace": {
-    "members": ["./packages/bot", "./packages/game", "./packages/server", "./packages/util", "./packages/webclient"]
+    "members": ["./packages/bot", "./packages/server", "./packages/util", "./packages/webclient"]
   },
   "tasks": {
     "server": "cd packages/server && deno task start",
