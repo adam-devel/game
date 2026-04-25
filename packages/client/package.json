@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-native/new-app-screen": "0.84.1",
     "@spleef/protocol": "github:adam-devel/spleef-protocol",
+    "msgpack-lite": "^0.1.26",
     "react": "19.2.3",
     "react-native": "0.84.1",
     "react-native-safe-area-context": "^5.5.2"
