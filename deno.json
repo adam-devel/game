@@ -11,8 +11,6 @@
   "imports": {
     "@game/log": "./packages/util/log.ts",
     "@game/bot": "./packages/bot/bot.ts",
-    "@game/game": "./packages/game/game.ts",
-    "@game/protocol": "./packages/protocol/protocol.ts",
     "@game/server": "./packages/server/server.ts",
     "@game/webclient": "./packages/webclient/client.ts",
     "@std/msgpack": "jsr:@std/msgpack@^1.0.3",
