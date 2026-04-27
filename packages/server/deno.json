@@ -2,9 +2,6 @@
   "name": "@game/server",
   "version": "1.0.0",
   "exports": "./server.ts",
-  "imports": {
-    "@game/protocol": "https://raw.githubusercontent.com/adam-devel/spleef-protocol/main/protocol.d.ts"
-  },
   "tasks": {
     "start": "deno run --allow-net server.ts"
   }
