@@ -23,7 +23,7 @@ Creating a multiplayer game. The foundation is ready for implementing the game a
 
 # Quick Demo
 
-1. clone the repository (`git clone https://github.com/...`)
+1. clone the repository (`git clone --recurse-submodules https://github.com/adam-devel/game`)
 2. install deno: `choco install deno` if you are using choclaty
 3. run the server with `deno task server`
 4. run a client: you can start the bot with `deno task bot`
