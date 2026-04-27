@@ -1,29 +1,36 @@
-Creating a multiplayer game. The foundation is ready for implementing the game and removing the placeholder "TicTacToe" logic. 
+Creating the 2D multiplayer game "Spleef"
 
-# Packages
+# Prerequisites
 
-- `@game/server`: The game server
-- `@game/client`: The Android client
-- `@game/bot`: A headless client for testing purposes
-- `@game/game`: The game logic
-- `@game/protocol`: Defines the structure of valid messages
-- `@game/shell`: A shell for interacting with the server and bot
+Install deno. If you have choclaty run:
+```
+choco install deno
+```
 
-# Game Flow
+# Usage
 
-1. **WAITING**: 2-5 players join a world. Players can move but cannot dig, attack, or push
-2. **PLAYING**: Majority votes to start. All actions enabled
-3. **OVER**: Last survivor wins
+Clone the repository:
 
-# Prediction & Reconciliation
+```
+git clone --recurse-submodules https://github.com/adam-devel/game
+```
 
-- Both server and client use the same `@game/game` simulation function
-- Server processes actions then broadcasts the same EVENTs for the clients to process
-- Server periodically sends SYNC to for clients to reconcile drift
+Run the server:
 
-# Quick Demo
+```
+deno task server
+```
 
-1. clone the repository (`git clone --recurse-submodules https://github.com/adam-devel/game`)
-2. install deno: `choco install deno` if you are using choclaty
-3. run the server with `deno task server`
-4. run a client: you can start the bot with `deno task bot`
+Run the mobile client
+
+# Modules
+
+- `@spleef/server`: The game server
+- `@spleef/client`: The Android client
+- `@spleef/bot`: A headless client for testing purposes
+- `@spleef/game`: The game logic
+- `@spleef/protocol`: Defines the structure of valid messages
+- `@spleef/shell`: A shell for interacting with the server and bot
+
+Both server and client use the same `@spleef/game` module for game simulation.
+The server and client use the same `@spleef/protocol` to agree on valid protocol message structure
