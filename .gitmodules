@@ -1,6 +1,6 @@
 [submodule "packages/game"]
 	path = packages/game
-	url = git@github.com:adam-devel/spleef-game.git
+	url = https://github.com/adam-devel/spleef-game.git
 [submodule "packages/protocol"]
 	path = packages/protocol
-	url = git@github.com:adam-devel/spleef-protocol.git
+	url = https://github.com/adam-devel/spleef-protocol.git
